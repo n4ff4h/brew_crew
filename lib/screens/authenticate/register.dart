@@ -1,22 +1,23 @@
 import 'package:brew_crew/services/auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-class SignIn extends StatefulWidget {
+class Register extends StatefulWidget {
   final Function toggleView;
 
-  const SignIn({Key? key, required this.toggleView}) : super(key: key);
+  const Register({Key? key, required this.toggleView}) : super(key: key);
 
   @override
-  State<SignIn> createState() => _SignInState();
+  State<Register> createState() => _RegisterState();
 }
 
-class _SignInState extends State<SignIn> {
+class _RegisterState extends State<Register> {
   final AuthService _auth = AuthService();
+  final _formKey = GlobalKey<FormState>(); // Identify register form
 
   // TextFied state
   String email = '';
   String password = '';
+  String error = '';
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +26,7 @@ class _SignInState extends State<SignIn> {
       appBar: AppBar(
         backgroundColor: Colors.brown[400],
         elevation: 0,
-        title: const Text('Sign in to Brew Crew'),
+        title: const Text('Register in to Brew Crew'),
         actions: [
           TextButton.icon(
             onPressed: () {
@@ -36,7 +37,7 @@ class _SignInState extends State<SignIn> {
               color: Colors.white,
             ),
             label: const Text(
-              'Register',
+              'Sign in',
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -48,6 +49,7 @@ class _SignInState extends State<SignIn> {
           horizontal: 50.0,
         ),
         child: Form(
+          key: _formKey,
           child: Column(
             children: [
               // Spacing
@@ -55,6 +57,8 @@ class _SignInState extends State<SignIn> {
 
               // Email field
               TextFormField(
+                // used by validate() function in sign in button
+                validator: (val) => val!.isEmpty ? 'Enter an email' : null,
                 // Everytime a user types something into the form field
                 // val represents what is currently in the form field
                 onChanged: (val) {
@@ -69,6 +73,10 @@ class _SignInState extends State<SignIn> {
 
               // Password Field
               TextFormField(
+                // used by validate() function in sign in button
+                validator: (val) => val!.length < 6
+                    ? 'Enter a password 6 plus chars long'
+                    : null,
                 obscureText: true,
                 // Everytime a user types something into the form field
                 // val represents what is currently in the form field
@@ -85,14 +93,45 @@ class _SignInState extends State<SignIn> {
               // Sign in button
               ElevatedButton(
                 onPressed: () async {
-                  print(email);
-                  print(password);
+                  // `_formKey.currentState.validate()` evaluates to 'true' of 'false'
+                  // Goes to each field and runs their respective `validator:` functions
+                  if (_formKey.currentState!.validate()) {
+                    // Create user
+                    dynamic result = await _auth.registerWithEmailAndPassword(
+                        email, password);
+
+                    // If there is an error when creating user
+                    if (result == null) {
+                      setState(() {
+                        error = 'Error when creating user';
+                      });
+                    }
+
+                    /*
+                      If user is successfully created, 
+                      user is automatically signed in(Firebase handles) and taken to the home page
+                      Note: Auth change stream is actively listening to user objects,
+                            and register function above returns a user object.
+                    */
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   primary: Colors.pink[400],
                 ),
-                child: const Text('Sign in'),
-              )
+                child: const Text('Register'),
+              ),
+
+              // Spacing
+              const SizedBox(height: 12.0),
+
+              // Error message
+              Text(
+                error,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 14.0,
+                ),
+              ),
             ],
           ),
         ),
